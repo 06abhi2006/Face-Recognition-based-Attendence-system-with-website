@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Webcam Attendance</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css">
+    <style>
+        body {
+            background: linear-gradient(120deg, #f6d365 0%, #fda085 100%);
+            min-height: 100vh;
+        }
+        .webcam-card {
+            border-radius: 18px;
+            box-shadow: 0 4px 24px rgba(0,0,0,0.09);
+            background: #fff;
+            animation: fadeInUp 1.1s;
+        }
+        @keyframes fadeInUp {
+            from { opacity: 0; transform: translateY(40px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        #video {
+            border-radius: 12px;
+            box-shadow: 0 2px 12px rgba(0,0,0,0.13);
+        }
+        .back-btn {
+            transition: background 0.2s, color 0.2s;
+        }
+        .back-btn:hover {
+            background: #fda085;
+            color: #fff;
+        }
+        #status {
+            min-height: 2.5em;
+        }
+    </style>
+    <!-- face-api.js CDN -->
+    <script defer src="https://cdn.jsdelivr.net/npm/face-api.js@0.22.2/dist/face-api.min.js"></script>
+</head>
+<body>
+    <div class="container py-5">
+        <div class="row justify-content-center">
+            <div class="col-lg-7">
+                <div class="webcam-card p-4">
+                    <h1 class="mb-4 text-center">Webcam Attendance</h1>
+                    <a href="/" class="btn btn-outline-secondary mb-3 back-btn">← Back to Home</a>
+                    <div class="text-center mb-3">
+                        <video id="video" width="480" height="360" autoplay muted></video>
+                        <canvas id="overlay" width="480" height="360" style="position:absolute; left:0; top:0;"></canvas>
+                    </div>
+                    <div class="text-center mb-3">
+                        <button id="markBtn" class="btn btn-primary btn-lg" disabled>Mark Attendance</button>
+                    </div>
+                    <div id="status" class="text-center"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <script>
+    const video = document.getElementById('video');
+    const overlay = document.getElementById('overlay');
+    const markBtn = document.getElementById('markBtn');
+    const statusDiv = document.getElementById('status');
+    let detectedName = null;
+    let labeledDescriptors = [];
+    let faceMatcher = null;
+
+    // Load face-api.js models
+    Promise.all([
+        faceapi.nets.tinyFaceDetector.loadFromUri('https://cdn.jsdelivr.net/npm/face-api.js@0.22.2/weights'),
+        faceapi.nets.faceRecognitionNet.loadFromUri('https://cdn.jsdelivr.net/npm/face-api.js@0.22.2/weights'),
+        faceapi.nets.faceLandmark68Net.loadFromUri('https://cdn.jsdelivr.net/npm/face-api.js@0.22.2/weights')
+    ]).then(startVideo);
+
+    function startVideo() {
+        navigator.mediaDevices.getUserMedia({ video: true })
+            .then(stream => {
+                video.srcObject = stream;
+            })
+            .catch(err => {
+                statusDiv.innerHTML = '<span class="text-danger">Cannot access webcam: ' + err + '</span>';
+            });
+    }
+
+    // Load labeled face descriptors (labels fetched from server)
+    async function loadLabeledImages() {
+        const response = await fetch('/api/face_labels');
+        const labels = await response.json();
+        return Promise.all(
+            labels.map(async label => {
+                const descriptions = [];
+                for (let i = 1; i <= 2; i++) { // At least 2 images per person
+                    try {
+                        const img = await faceapi.fetchImage(`/static/faces/${label}/${i}.jpg`)
+                        const detections = await faceapi.detectSingleFace(img).withFaceLandmarks().withFaceDescriptor();
+                        if (detections) {
+                            descriptions.push(detections.descriptor);
+                        }
+                    } catch (e) {
+                        // Image not found or error, skip
+                    }
+                }
+                return new faceapi.LabeledFaceDescriptors(label, descriptions);
+            })
+        );
+    }
+
+    video.addEventListener('play', async () => {
+        labeledDescriptors = await loadLabeledImages();
+        faceMatcher = new faceapi.FaceMatcher(labeledDescriptors, 0.6);
+        statusDiv.innerHTML = '<span class="text-success">Models loaded. Looking for faces...</span>';
+        const displaySize = { width: video.width, height: video.height };
+        faceapi.matchDimensions(overlay, displaySize);
+        setInterval(async () => {
+            const detections = await faceapi.detectAllFaces(video, new faceapi.TinyFaceDetectorOptions()).withFaceLandmarks().withFaceDescriptors();
+            const resizedDetections = faceapi.resizeResults(detections, displaySize);
+            overlay.getContext('2d').clearRect(0, 0, overlay.width, overlay.height);
+            if (detections.length > 0 && faceMatcher) {
+                const bestMatch = faceMatcher.findBestMatch(detections[0].descriptor);
+                detectedName = bestMatch.label !== 'unknown' ? bestMatch.label : null;
+                if (detectedName) {
+                    statusDiv.innerHTML = `<span class='text-success'>Detected: <b>${detectedName}</b></span>`;
+                    markBtn.disabled = false;
+                } else {
+                    statusDiv.innerHTML = '<span class="text-warning">Face not recognized.</span>';
+                    markBtn.disabled = true;
+                }
+                faceapi.draw.drawDetections(overlay, resizedDetections);
+                faceapi.draw.drawFaceLandmarks(overlay, resizedDetections);
+            } else {
+                statusDiv.innerHTML = '<span class="text-warning">No face detected.</span>';
+                markBtn.disabled = true;
+            }
+        }, 700);
+    });
+
+    markBtn.onclick = async () => {
+        if (!detectedName) return;
+        markBtn.disabled = true;
+        statusDiv.innerHTML = '<span class="text-info">Marking attendance...</span>';
+        const res = await fetch('/api/mark_attendance', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ name: detectedName })
+        });
+        const data = await res.json();
+        if (data.status === 'success') {
+            statusDiv.innerHTML = `<span class='text-success'>Attendance marked for <b>${data.name}</b> at ${data.time}!</span>`;
+        } else {
+            statusDiv.innerHTML = `<span class='text-danger'>Error: ${data.message}</span>`;
+        }
+    };
+    </script>
+</body>
+</html> 

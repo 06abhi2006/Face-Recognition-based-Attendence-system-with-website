@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Attendance System</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css">
+    <style>
+        body {
+            background: linear-gradient(135deg, #e0eafc 0%, #cfdef3 100%);
+            min-height: 100vh;
+        }
+        .hero {
+            padding: 60px 0 40px 0;
+            text-align: center;
+            animation: fadeInDown 1s;
+        }
+        @keyframes fadeInDown {
+            from { opacity: 0; transform: translateY(-40px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .btn-animated {
+            transition: transform 0.2s, box-shadow 0.2s;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+        }
+        .btn-animated:hover {
+            transform: translateY(-4px) scale(1.04);
+            box-shadow: 0 6px 24px rgba(0,0,0,0.13);
+        }
+        .card {
+            border: none;
+            border-radius: 18px;
+            box-shadow: 0 4px 24px rgba(0,0,0,0.07);
+            animation: fadeInUp 1.2s;
+        }
+        @keyframes fadeInUp {
+            from { opacity: 0; transform: translateY(40px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        footer {
+            margin-top: 60px;
+            text-align: center;
+            color: #888;
+            font-size: 1rem;
+            opacity: 0.8;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="hero">
+            <img src="https://img.icons8.com/ios-filled/100/000000/face-id.png" alt="Face ID" style="width:90px; margin-bottom: 18px; filter: drop-shadow(0 2px 8px #b3c6e0);">
+            <h1 class="display-5 fw-bold mb-3">Face Recognition Attendance System</h1>
+            <p class="lead mb-4">Seamlessly mark and view attendance using advanced face recognition technology.</p>
+        </div>
+        <div class="row justify-content-center">
+            <div class="col-md-6">
+                <div class="card p-4 mb-4">
+                    <div class="d-grid gap-3">
+                        <a href="/run" class="btn btn-primary btn-lg btn-animated">Run Attendance <span class="ms-2">📷</span></a>
+                        <a href="/attendance" class="btn btn-success btn-lg btn-animated">View Attendance Records <span class="ms-2">📋</span></a>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <footer>
+            &copy; {{ 2024 }} Face Recognition Attendance System &mdash; Designed with ❤️ for smooth experience
+        </footer>
+    </div>
+</body>
+</html> 

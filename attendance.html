@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Attendance Records</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css">
+    <style>
+        body {
+            background: linear-gradient(120deg, #f6d365 0%, #fda085 100%);
+            min-height: 100vh;
+        }
+        .records-card {
+            border-radius: 18px;
+            box-shadow: 0 4px 24px rgba(0,0,0,0.09);
+            background: #fff;
+            animation: fadeInUp 1.1s;
+        }
+        @keyframes fadeInUp {
+            from { opacity: 0; transform: translateY(40px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .table-animate tbody tr {
+            transition: background 0.2s, transform 0.2s;
+        }
+        .table-animate tbody tr:hover {
+            background: #f9e7d3;
+            transform: scale(1.01);
+        }
+        .back-btn {
+            transition: background 0.2s, color 0.2s;
+        }
+        .back-btn:hover {
+            background: #fda085;
+            color: #fff;
+        }
+        footer {
+            margin-top: 60px;
+            text-align: center;
+            color: #888;
+            font-size: 1rem;
+            opacity: 0.8;
+        }
+    </style>
+</head>
+<body>
+    <div class="container py-5">
+        <div class="row justify-content-center">
+            <div class="col-lg-8">
+                <div class="records-card p-4">
+                    <h1 class="mb-4 text-center">Attendance Records</h1>
+                    <a href="/" class="btn btn-outline-secondary mb-3 back-btn">← Back to Home</a>
+                    {% if records %}
+                    <div class="table-responsive">
+                        <table class="table table-bordered table-striped table-animate">
+                            <thead class="table-warning">
+                                <tr>
+                                    <th>Name</th>
+                                    <th>Date</th>
+                                    <th>Time</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for row in records %}
+                                <tr>
+                                    <td>{{ row['Name'] }}</td>
+                                    <td>{{ row['Date'] }}</td>
+                                    <td>{{ row['Time'] }}</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    {% else %}
+                    <div class="alert alert-warning">No attendance records found.</div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+        <footer>
+            &copy; {{ 2024 }} Face Recognition Attendance System
+        </footer>
+    </div>
+</body>
+</html> 
